@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hull0k"
+version = "0.1.0"
+description = "0 K convex hulls for binary alloys, with LAMMPS as the only energy engine"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+authors = [
+  { name = "Erik Bitzek" },
+]
+keywords = [
+  "materials-science", "atomistic-simulation", "lammps", "convex-hull",
+  "formation-energy", "phase-stability", "interatomic-potentials", "epitaxy",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Topic :: Scientific/Engineering :: Chemistry",
+]
+dependencies = [
+  "ase>=3.24",
+  "pymatgen>=2024.1",
+  "spglib>=2.2",
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "matplotlib>=3.8",
+  "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+# needed only by `hull0k build_pool ... sqs`
+sqs = ["icet>=3.0"]
+# needed only by `hull0k mp_pool` (the Materials Project DFT comparison column)
+mp = ["mp-api>=0.40"]
+all = ["icet>=3.0", "mp-api>=0.40"]
+
+[project.scripts]
+hull0k = "hull0k.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/biterik/hull0k"
+Issues = "https://github.com/biterik/hull0k/issues"
+
+[tool.setuptools]
+packages = ["hull0k"]
+
+[tool.setuptools.package-data]
+hull0k = ["*.py"]

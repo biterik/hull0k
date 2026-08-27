@@ -1,0 +1,37 @@
+# ---------------------------------------------------------------
+# singlepoint.in.skel  (rendered: RUNLABEL-singlepoint.in)
+# Equivalence gate (brief section 4.4): an INDEPENDENT single-point
+# evaluation (run 0) re-reading a relaxed .lmps file; must reproduce
+# the minimizer's final energy to < 1e-8 eV/atom, closing the loop
+# over file I/O.
+# Project: convex-hull-0k  Thread: THREADDIR  Run: RUNLABEL
+# Author: Erik Bitzek  (created with LLM-LMPS)
+# Date: RUNDATE
+# ---------------------------------------------------------------
+# NEED TO SET: runlabel threaddir rundate datafile pairstyleline paircoeffline
+log RUNLABEL-singlepoint.log
+
+units metal
+dimension 3
+boundary p p p
+atom_style atomic
+
+read_data DATAFILE
+
+PAIRSTYLELINE
+PAIRCOEFFLINE
+
+neighbor 2.0 bin
+neigh_modify every 1 delay 0 check yes
+
+variable n_atoms equal count(all)
+variable e_per_atom equal pe/v_n_atoms
+
+thermo_style custom step pe v_e_per_atom press
+thermo 1
+
+run 0
+
+print "RESULT RUNLABEL natoms = $(v_n_atoms)"
+print "RESULT RUNLABEL E_total_eV = $(pe:%.10f)"
+print "RESULT RUNLABEL E_per_atom_eV = $(v_e_per_atom:%.12f)"

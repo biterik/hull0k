@@ -1,0 +1,151 @@
+# ---------------------------------------------------------------------------
+# configs/EXAMPLE.yaml -- annotated template config for hull0k.
+#
+# EVERYTHING system-specific lives in a file like this one. Nothing under
+# hull0k/ knows about any element. To run a new binary system: copy this
+# file, fill it in, and run the pipeline. No code changes.
+#
+#   cp configs/EXAMPLE.yaml configs/Ni-Nb.yaml
+#   $EDITOR configs/Ni-Nb.yaml
+#   python -m hull0k.build_pool configs/Ni-Nb.yaml
+#   python -m hull0k.relax      configs/Ni-Nb.yaml MY-POTENTIAL
+#   python -m hull0k.hull       configs/Ni-Nb.yaml MY-POTENTIAL
+#   python -m hull0k.report     configs/Ni-Nb.yaml MY-POTENTIAL
+#
+# See configs/Ni-Cu.yaml for a real, working example.
+# ---------------------------------------------------------------------------
+
+# ---- 1. the system --------------------------------------------------------
+
+system: A-B                  # short label; appears in output file names
+
+# ORDER IS BINDING. elements[0] -> LAMMPS atom type 1, elements[1] -> type 2,
+# in every data file and every input script, always. It also fixes the
+# composition variable: x = N_{elements[1]} / (N_total).
+# The element list on your pair_coeff line below MUST match this order --
+# for both eam/alloy and pace it is that list, NOT the potential file's
+# internal order, that binds types to elements. Verify it once with a
+# single-atom check before trusting anything downstream.
+elements: [A, B]
+masses:   [0.0, 0.0]         # amu, in the same order
+
+# Initial fcc lattice-parameter guesses (Angstrom), used ONLY for building
+# structures. Every prototype's starting cell is derived from these at
+# constant atomic volume; phase 2 relaxes everything, so approximate
+# experimental or literature values are entirely sufficient.
+a_fcc: {A: 3.50, B: 3.60}
+
+# ---- 2. where the data goes ----------------------------------------------
+
+# Data lives OUTSIDE the repository. Absolute path.
+# Even for a cluster run this stays a LOCAL path: the tree is built here,
+# rsynced to the cluster, and rsynced back for harvesting.
+data_tree: /absolute/path/to/SIMULATIONS/CONVEX-HULL-0K-A-B
+pool_dir: 00_STRUCTURE-POOL   # shared by every potential below
+
+# ---- 3. the potentials ----------------------------------------------------
+
+# One block per potential; the block key is the <potential-key> argument of
+# every phase-2/3/4 command. Each gets its own thread directory, so several
+# potentials can be compared on a byte-identical structure pool.
+potentials:
+
+  MY-POTENTIAL:
+    thread_dir: 01_HULL-MY-POTENTIAL
+    file: /absolute/path/to/the/potential/file          # cluster path for a cluster run
+    sha256: 0000000000000000000000000000000000000000000000000000000000000000
+    pair_style: eam/alloy                               # or: pace | snap | meam | ...
+    # POTPATH is substituted with `file` above. The element list must match
+    # `elements` above, in that order.
+    pair_coeff: "* * POTPATH A B"
+    citation: "Author et al., Journal Volume, Page (Year)"
+
+  # A second potential to compare against -- optional.
+  # MY-OTHER-POTENTIAL:
+  #   thread_dir: 02_HULL-MY-OTHER-POTENTIAL
+  #   file: /absolute/path/to/other.yaml
+  #   sha256: ...
+  #   pair_style: pace
+  #   pair_coeff: "* * POTPATH A B"
+  #   citation: "..."
+
+# ---- 4. the LAMMPS binary -------------------------------------------------
+
+# Must have the packages your pair styles need: MANYBODY for EAM,
+# ML-PACE for `pair_style pace`, ML-SNAP for SNAP, and so on.
+lmp_binary: /absolute/path/to/lmp
+lmp_version: "22 Jul 2025 - Update 3"   # recorded in run.yaml provenance
+
+# Optional launcher prefix for the lmp call. Leave empty for a serial binary
+# on a workstation. Set to "srun" for an MPI-built binary on a cluster --
+# MPI-linked LAMMPS calls MPI_Init() before parsing any flag and will abort
+# without it. See README section 7.
+lmp_launch: ""
+
+# ---- 5. special quasirandom structures (icet) -----------------------------
+
+sqs:
+  parent: fcc                       # parent lattice: fcc | bcc | hcp
+  compositions: [0.25, 0.50, 0.75]  # x_B values, one SQS cell each
+  natoms: 108                       # target cell size (3x3x3 fcc conventional)
+  cutoffs: [8.0, 5.0]               # pair, triplet cluster-space cutoffs (Angstrom)
+  n_steps: 50000                    # Monte-Carlo steps in the SQS search
+# The achieved maximum correlation mismatch is written to each SQS sidecar --
+# read it before trusting the cell. Requires the [sqs] extra (icet).
+
+# ---- 6. point defects -----------------------------------------------------
+
+defects:
+  host_lattice: fcc                 # host lattice: fcc | bcc | hcp
+  supercell: [4, 4, 4]              # conventional cells -> 256 fcc sites
+  spotcheck_supercell: [6, 6, 6]    # 864 sites, ONE case, for the finite-size shift
+  cases: [vac_A, vac_B, sub_BinA, sub_AinB]
+# Defects are built in the pure end members only. Defects in ordered
+# compounds and in SQS cells are out of scope (README section 10).
+
+# ---- 7. epitaxy model for the strained hull (phase 4) ---------------------
+
+epitaxy:
+  model: fcc001-cube-on-cube        # see hull0k/epitaxy.py for the registry
+  # strain_dir: STRAIN-MY-ORIENTATION
+  #   Optional. Output directory under the thread dir. By default it is
+  #   derived from the model's dir_tag with the elements substituted --
+  #   STRAIN-001-Ni for the fcc(001) model with elements [Ni, ...] -- so two
+  #   orientations never write into each other. Set this only to pin a name.
+# The model owns the substrate reference, the film-cell construction and the
+# prototype eligibility list. Adding an orientation is one registry entry;
+# the driver, the analysis and the LAMMPS template do not change.
+
+# ---- 7b. plots (optional) -------------------------------------------------
+
+# plots:
+#   ef_zoom_max: 0.16               # eV/atom: upper cut of the hull plot's
+#                                   # zoom panel. The number of entries above
+#                                   # the cut and the true maximum are always
+#                                   # stated in the panel title -- nothing is
+#                                   # ever clipped silently.
+
+# ---- 8. Materials Project DFT comparison column (optional) ----------------
+
+materials_project:
+  chemsys: A-B                      # e.g. Cu-Ni
+# Requires the [mp] extra (mp-api) and an API key in the environment variable
+# MATERIALS_PROJECT_API_KEY. The key is passed explicitly to MPRester, never
+# printed, and never written to any file. MP energies are a COMPARISON COLUMN
+# only -- they are never mixed into the hull.
+# Omit this block entirely to skip the DFT column (every field reads NA).
+
+# ---- 9. validation references (optional) ----------------------------------
+
+# On-record values, per potential key. If present, `hull0k report` turns them
+# into explicit PASS/FAIL gates in RESULTS_<potential>.md. Omit what you do
+# not have -- missing entries are reported as "none on record", not as
+# failures.
+# references:
+#   MY-POTENTIAL:
+#     a0_A:      3.521968
+#     Ecoh_A:   -4.818994      # eV/atom
+#     a0_B:      3.635287
+#     Ecoh_B:   -3.662091
+#     Evac_A:    1.5060        # eV
+#     Esub_BinA: 0.2339        # eV

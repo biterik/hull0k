@@ -1,0 +1,65 @@
+# ---------------------------------------------------------------
+# minimize-boxrelax.in.skel  (rendered: RUNLABEL-min.in)
+# 0 K relaxation of one candidate structure: cg + fix box/relax,
+# stopping at fnorm/sqrt(3N) < 1e-8 eV/A (canon convention).
+# fnorm = 2-norm of the global 3N force vector (eV/A); we report
+# fnorm/N and fnorm/sqrt(3N), never bare fnorm.
+# Project: convex-hull-0k  Thread: THREADDIR  Run: RUNLABEL
+# Author: Erik Bitzek  (created with LLM-LMPS)
+# Date: RUNDATE
+# ---------------------------------------------------------------
+# NEED TO SET: runlabel threaddir rundate datafile pairstyleline
+#              paircoeffline coupling maxiter maxeval boxprep
+log RUNLABEL-min.log
+
+units metal
+dimension 3
+boundary p p p
+atom_style atomic
+
+read_data DATAFILE
+BOXPREP
+
+PAIRSTYLELINE
+PAIRCOEFFLINE
+
+neighbor 2.0 bin
+neigh_modify every 1 delay 0 check yes
+
+variable n_atoms equal count(all)
+variable sqrt_3N equal sqrt(3.0*v_n_atoms)
+variable FTOL_PER_DOF equal 1.0e-8
+variable ftol_global equal v_FTOL_PER_DOF*v_sqrt_3N
+variable fnorm_per_atom equal fnorm/v_n_atoms
+variable fnorm_per_dof equal fnorm/v_sqrt_3N
+variable e_per_atom equal pe/v_n_atoms
+
+thermo_style custom step pe v_e_per_atom fnorm v_fnorm_per_atom v_fnorm_per_dof press vol
+thermo 200
+
+fix BOXRELAX all box/relax COUPLING 0.0
+min_style cg
+min_modify line quadratic
+minimize 0.0 ${ftol_global} MAXITER MAXEVAL
+
+write_data RUNLABEL-relaxed.lmps nocoeff
+
+print "RESULT RUNLABEL natoms = $(v_n_atoms)"
+print "RESULT RUNLABEL E_total_eV = $(pe:%.10f)"
+print "RESULT RUNLABEL E_per_atom_eV = $(v_e_per_atom:%.10f)"
+print "RESULT RUNLABEL fnorm_eV_A = $(fnorm:%.6e)"
+print "RESULT RUNLABEL fnorm_per_atom_eV_A = $(v_fnorm_per_atom:%.6e)"
+print "RESULT RUNLABEL fnorm_per_dof_eV_A = $(v_fnorm_per_dof:%.6e)"
+print "RESULT RUNLABEL press_bar = $(press:%.6f)"
+print "RESULT RUNLABEL pxx_bar = $(pxx:%.6f)"
+print "RESULT RUNLABEL pyy_bar = $(pyy:%.6f)"
+print "RESULT RUNLABEL pzz_bar = $(pzz:%.6f)"
+print "RESULT RUNLABEL pxy_bar = $(pxy:%.6f)"
+print "RESULT RUNLABEL pxz_bar = $(pxz:%.6f)"
+print "RESULT RUNLABEL pyz_bar = $(pyz:%.6f)"
+print "RESULT RUNLABEL lx_A = $(lx:%.10f)"
+print "RESULT RUNLABEL ly_A = $(ly:%.10f)"
+print "RESULT RUNLABEL lz_A = $(lz:%.10f)"
+print "RESULT RUNLABEL xy_A = $(xy:%.10f)"
+print "RESULT RUNLABEL xz_A = $(xz:%.10f)"
+print "RESULT RUNLABEL yz_A = $(yz:%.10f)"

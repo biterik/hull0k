@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+title: "hull0k: 0 K convex hulls for binary alloys from LAMMPS potentials"
+message: "If you use this software, please cite it using these metadata."
+type: software
+authors:
+  - family-names: Bitzek
+    given-names: Erik
+    affiliation: "Max-Planck-Institut für Nachhaltige Materialien (MPI for Sustainable Materials), Düsseldorf, Germany"
+repository-code: "https://github.com/biterik/hull0k"
+abstract: >-
+  hull0k builds the 0 K formation-energy convex hull of a binary alloy system
+  using an interatomic potential as the only energy engine. Every energy, force
+  and minimisation is computed by a real LAMMPS binary running a real input
+  script; Python only builds structures, orchestrates and analyses. For each
+  candidate structure it reports the formation energy and the distance to the
+  hull (e_above_hull) as the metastability measure, together with hull chemical
+  potentials, vacancy and dilute substitution energies, and a comparison column
+  of DFT formation energies from the Materials Project. It also computes the
+  strained (epitaxial) hull under a biaxial in-plane constraint, in both the
+  unstrained-reference and coherent-reference conventions, and reports every
+  strain-induced change in hull membership.
+keywords:
+  - materials science
+  - atomistic simulation
+  - LAMMPS
+  - convex hull
+  - formation energy
+  - phase stability
+  - interatomic potentials
+  - machine-learned potentials
+  - epitaxy
+  - special quasirandom structures
+license: BSD-3-Clause
+version: "0.1.0"
+date-released: "2026-08-26"

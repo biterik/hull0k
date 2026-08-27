@@ -1,0 +1,66 @@
+# configs/Ni-Cu.yaml
+# Everything Ni-Cu-specific for the hull0k workflow lives HERE.
+# A future Ni-Nb config must require no code changes (brief section 0).
+# Author: Erik Bitzek (created with LLM-LMPS)  Date: 2026-08-26
+
+system: Ni-Cu
+elements: [Ni, Cu]          # type 1 = Ni, type 2 = Cu -- fixed globally
+masses: [58.6934, 63.546]
+
+# initial lattice-parameter guesses (A) for structure building only;
+# phase 2 relaxes everything with each potential
+a_fcc: {Ni: 3.52, Cu: 3.615}
+
+data_tree: /Users/e.bitzek/Desktop/SIMULATIONS/CONVEX-HULL-0K-Ni-Cu
+pool_dir: 00_STRUCTURE-POOL
+
+potentials:
+  EAM-Fischer2018:
+    thread_dir: 01_HULL-EAM-Fischer2018
+    file: /Users/e.bitzek/Desktop/SIMULATIONS/EAM-DISLOCS-Ni-Cu/Cu_Ni_Fischer_2018.eam.alloy
+    sha256: ee585bf9884a4ac2548abb395e81a12a941505983aaa058ef546929df74cf240
+    pair_style: eam/alloy
+    pair_coeff: "* * POTPATH Ni Cu"
+    citation: "F. Fischer, G. Schmitz, S. M. Eich, Acta Mater. 176, 220 (2019)"
+  ACE-CuNi:
+    thread_dir: 02_HULL-ACE-CuNi
+    file: /Users/e.bitzek/Desktop/SIMULATIONS/ACE-DISLOCS-Ni-Cu/ACE_CuNi.yaml
+    sha256: f1f4af89c006f200d92d01f95ab55b4dfbfd6181ab215184c8f57d49edbddf12
+    pair_style: pace
+    pair_coeff: "* * POTPATH Ni Cu"
+    citation: "ACE_CuNi.yaml (project-local ACE parameterization, ACE-DISLOCS-Ni-Cu)"
+
+lmp_binary: /Users/e.bitzek/bin/lmp-pace
+lmp_version: "22 Jul 2025 - Update 3"
+# optional launcher prefix for the lmp call, e.g. "srun" on a cluster;
+# empty/absent = run the binary directly (Mac)
+lmp_launch: ""
+
+sqs:
+  parent: fcc                        # parent lattice: fcc | bcc | hcp
+  compositions: [0.25, 0.50, 0.75]   # x_Cu
+  natoms: 108                        # 3x3x3 conventional cells
+  cutoffs: [8.0, 5.0]                # pair, triplet cluster-space cutoffs (A)
+  n_steps: 50000
+
+defects:
+  host_lattice: fcc                  # host lattice: fcc | bcc | hcp
+  supercell: [4, 4, 4]               # conventional cells -> 256 sites
+  spotcheck_supercell: [6, 6, 6]     # 864 sites, one case (Cu subst in Ni)
+  cases: [vac_Ni, vac_Cu, sub_CuinNi, sub_NiinCu]
+
+epitaxy:
+  model: fcc001-cube-on-cube         # see hull0k/epitaxy.py for the registry
+
+materials_project:
+  chemsys: Cu-Ni
+
+# validation references (phase 3 gates; see PHASE0-ENVIRONMENT-AUDIT.md section 6)
+references:
+  ACE-CuNi:
+    a0_Ni: 3.52196786648779
+    Ecoh_Ni: -4.81899412302984
+    a0_Cu: 3.63528714209867
+    Ecoh_Cu: -3.66209118843839
+    Evac_Ni: 1.5060
+    Esub_CuinNi: 0.2339
