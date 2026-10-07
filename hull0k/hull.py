@@ -2,7 +2,8 @@
 
 Formation energy per atom: E_f(x) = E(x) - x*E_B - (1-x)*E_A with
 x = N_B/(N_A+N_B) counting atoms only; end-member references are THIS
-potential's relaxed fcc A and fcc B energies.
+potential's relaxed fcc A and fcc B energies (or the lattices given in the
+config key `reference_lattice`, e.g. bcc Nb).
 
 Hull: pymatgen PhaseDiagram, cross-checked against a direct
 scipy.spatial.ConvexHull lower hull -- the vertex sets must agree.
@@ -26,7 +27,7 @@ from pathlib import Path
 import numpy as np
 import yaml
 
-from .build_pool import load_config
+from .build_pool import load_config, ref_lattice
 from .labels import is_bulk_candidate, is_sqs
 from .relax import read_lmps
 
@@ -83,8 +84,9 @@ def collect_entries(cfg, potkey):
 
 
 def formation_energies(entries, cfg):
-    eA = next(e for e in entries if e["name"] == f"fcc_{cfg['elements'][0]}")
-    eB = next(e for e in entries if e["name"] == f"fcc_{cfg['elements'][1]}")
+    A, B = cfg["elements"]
+    eA = next(e for e in entries if e["name"] == f"{ref_lattice(cfg, A)}_{A}")
+    eB = next(e for e in entries if e["name"] == f"{ref_lattice(cfg, B)}_{B}")
     EA, EB = eA["E_per_atom"], eB["E_per_atom"]
     for e in entries:
         e["Ef"] = e["E_per_atom"] - e["x"] * EB - (1 - e["x"]) * EA
@@ -163,7 +165,8 @@ def mu_curves(entries, cfg, EA, EB):
 
 def defect_energies(entries, cfg, EA, EB):
     """Vacancy and dilute-substitution energies, reservoirs = the relaxed
-    fcc end members of THIS potential (constant-mu convention)."""
+    reference end members of THIS potential (fcc unless `reference_lattice`
+    says otherwise; constant-mu convention)."""
     A, B = cfg["elements"]
     Ecoh = {A: EA, B: EB}
     out = {}
@@ -220,7 +223,8 @@ def write_outputs(cfg, potkey, entries, stable, scipy_verts, segs, defects, EA, 
             f.write("#   used for comparison only and NEVER mixed into the hull. That data is\n")
             f.write("#   CC-BY 4.0 -- cite Jain et al., APL Materials 1, 011002 (2013) if you\n")
             f.write("#   publish this column. Per-entry mp_id and mp_url are in the pool sidecars.\n")
-        f.write(f"# Ef(x) = E(x) - x*E_{B},fcc - (1-x)*E_{A},fcc with E_{A},fcc = {EA:.10f}, E_{B},fcc = {EB:.10f} eV/atom\n")
+        lA, lB = ref_lattice(cfg, A), ref_lattice(cfg, B)
+        f.write(f"# Ef(x) = E(x) - x*E_{B},{lB} - (1-x)*E_{A},{lA} with E_{A},{lA} = {EA:.10f}, E_{B},{lB} = {EB:.10f} eV/atom\n")
         f.write("# name prototype source x natoms E_per_atom_eV Ef_per_atom_eV e_above_hull_eV "
                 "a_A b_A c_A alpha_deg beta_deg gamma_deg spacegroup_relaxed drifted(0/1) Ef_DFT_MP_eV(or NA)\n")
         for e in sorted(entries, key=lambda q: (q["x"], q["Ef"])):
@@ -290,7 +294,7 @@ def write_outputs(cfg, potkey, entries, stable, scipy_verts, segs, defects, EA, 
                                 xytext=(4, 4), fontsize=7, color="#444444")
         else:
             ax.set_title(f"0 K formation-energy hull, {sysname}, {potkey}\n"
-                         f"references: relaxed fcc {A} ({EA:.5f}) and fcc {B} ({EB:.5f}) eV/atom",
+                         f"references: relaxed {ref_lattice(cfg, A)} {A} ({EA:.5f}) and {ref_lattice(cfg, B)} {B} ({EB:.5f}) eV/atom",
                          fontsize=10)
             ax.legend(fontsize=8, loc="upper right")
             for e in entries:

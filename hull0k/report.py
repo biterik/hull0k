@@ -17,7 +17,7 @@ from pathlib import Path
 
 import yaml
 
-from .build_pool import load_config
+from .build_pool import load_config, ref_lattice
 from .labels import is_bulk_candidate
 
 
@@ -44,6 +44,7 @@ def main(argv):
     potkey = argv[1]
     A, B = cfg["elements"]
     sysname = cfg["system"]
+    lA, lB = ref_lattice(cfg, A), ref_lattice(cfg, B)
     pot = cfg["potentials"][potkey]
     thread = Path(cfg["data_tree"]) / pot["thread_dir"]
     today = datetime.date.today().isoformat()
@@ -64,7 +65,7 @@ def main(argv):
     # the primitive end member (|dEf| < 1e-9) is reported under the fcc name
     hull_members = []
     for n in sorted(set(ana["hull_members_pymatgen"])):
-        for canon in (f"fcc_{A}", f"fcc_{B}"):
+        for canon in (f"{lA}_{A}", f"{lB}_{B}"):
             if n != canon and n.startswith(canon) and canon in by_name and \
                     abs(by_name[n]["Ef_per_atom_eV"] - by_name[canon]["Ef_per_atom_eV"]) < 1e-9:
                 n = canon
@@ -72,7 +73,7 @@ def main(argv):
         if n not in hull_members:
             hull_members.append(n)
     nontrivial = [n for n in hull_members
-                  if not n.startswith((f"fcc_{A}", f"fcc_{B}"))]
+                  if not n.startswith((f"{lA}_{A}", f"{lB}_{B}"))]
 
     L = []
     L.append(f"# RESULTS_{potkey}.md -- 0 K convex hull, {sysname}")
@@ -94,14 +95,14 @@ def main(argv):
     L.append("")
     L.append(f"| quantity | this work | on record | gate |")
     L.append(f"|---|---|---|---|")
-    fA = by_name[f"fcc_{A}"]
-    fB = by_name[f"fcc_{B}"]
+    fA = by_name[f"{lA}_{A}"]
+    fB = by_name[f"{lB}_{B}"]
     if refs:
         gates = [
-            (f"a0 fcc {A} (A)", float(fA["a_A"]), refs.get(f"a0_{A}"), 1e-3),
-            (f"E_coh fcc {A} (eV/at)", fA["E_per_atom_eV"], refs.get(f"Ecoh_{A}"), 1e-3),
-            (f"a0 fcc {B} (A)", float(fB["a_A"]), refs.get(f"a0_{B}"), 1e-3),
-            (f"E_coh fcc {B} (eV/at)", fB["E_per_atom_eV"], refs.get(f"Ecoh_{B}"), 1e-3),
+            (f"a0 {lA} {A} (A)", float(fA["a_A"]), refs.get(f"a0_{A}"), 1e-3),
+            (f"E_coh {lA} {A} (eV/at)", fA["E_per_atom_eV"], refs.get(f"Ecoh_{A}"), 1e-3),
+            (f"a0 {lB} {B} (A)", float(fB["a_A"]), refs.get(f"a0_{B}"), 1e-3),
+            (f"E_coh {lB} {B} (eV/at)", fB["E_per_atom_eV"], refs.get(f"Ecoh_{B}"), 1e-3),
         ]
         for label, val, ref, tol in gates:
             if ref is None:
@@ -111,10 +112,10 @@ def main(argv):
                 L.append(f"| {label} | {val:.6f} | {ref:.6f} | {'PASS' if ok else 'FAIL'} "
                          f"(|d| = {abs(val - ref):.2e}) |")
     else:
-        L.append(f"| a0 fcc {A} (A) | {float(fA['a_A']):.6f} | none on record | -- |")
-        L.append(f"| E_coh fcc {A} (eV/at) | {fA['E_per_atom_eV']:.6f} | none on record | -- |")
-        L.append(f"| a0 fcc {B} (A) | {float(fB['a_A']):.6f} | none on record | -- |")
-        L.append(f"| E_coh fcc {B} (eV/at) | {fB['E_per_atom_eV']:.6f} | none on record | -- |")
+        L.append(f"| a0 {lA} {A} (A) | {float(fA['a_A']):.6f} | none on record | -- |")
+        L.append(f"| E_coh {lA} {A} (eV/at) | {fA['E_per_atom_eV']:.6f} | none on record | -- |")
+        L.append(f"| a0 {lB} {B} (A) | {float(fB['a_A']):.6f} | none on record | -- |")
+        L.append(f"| E_coh {lB} {B} (eV/at) | {fB['E_per_atom_eV']:.6f} | none on record | -- |")
     L.append("")
     L.append(f"Hull cross-check (pymatgen PhaseDiagram vs direct scipy ConvexHull): "
              f"{'AGREE' if ana['hull_crosscheck_agree'] else 'DISAGREE -- INVESTIGATE'}.")
@@ -126,7 +127,7 @@ def main(argv):
     L.append(f"Hull members: {', '.join('`' + n + '`' for n in hull_members)}.")
     L.append("")
     if nontrivial:
-        L.append(f"**FINDING: the hull is NOT the trivial {{fcc {A}, fcc {B}}} pair.**")
+        L.append(f"**FINDING: the hull is NOT the trivial {{{lA} {A}, {lB} {B}}} pair.**")
         for n in nontrivial:
             r = by_name[n]
             L.append(f"- `{n}` ({r['prototype']}, {r['spacegroup_relaxed']}) at "
@@ -141,7 +142,7 @@ def main(argv):
                      f"spacegroups {sorted(sgs)}). The negative formation energy is a "
                      f"property of the potential, not a relaxation artifact.")
     else:
-        L.append(f"The hull is the expected trivial pair {{fcc {A}, fcc {B}}}: every "
+        L.append(f"The hull is the expected trivial pair {{{lA} {A}, {lB} {B}}}: every "
                  f"compound and solution has E_f > 0. This matches the assessed {sysname} "
                  f"phase diagram (no stable intermetallics).")
     L.append("")
@@ -187,8 +188,8 @@ def main(argv):
     d = ana["defect_energies_eV"]
     L.append("## Defect energies")
     L.append("")
-    L.append("Reservoir convention: chemical potentials of the RELAXED PURE fcc end")
-    L.append(f"members of this potential (mu_{A} = E_coh(fcc {A}), mu_{B} = E_coh(fcc {B})).")
+    L.append("Reservoir convention: chemical potentials of the RELAXED PURE reference end")
+    L.append(f"members of this potential (mu_{A} = E_coh({lA} {A}), mu_{B} = E_coh({lB} {B})).")
     L.append("")
     L.append("| quantity | cell | value (eV) |")
     L.append("|---|---|---|")

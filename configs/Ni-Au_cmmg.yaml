@@ -1,0 +1,75 @@
+# configs/Ni-Au_cmmg.yaml
+# hull0k system config for Ni-Au, CLUSTER-FACING (cmmg module lammps/250722, launched with srun), same pattern as
+# configs/Ni-Cu_cmmg-NIST.yaml. data_tree stays the Mac path.
+# Author: Erik Bitzek (created with LLM-LAMMPS)  Date: 2026-10-07
+# Both elements fcc -> no reference_lattice key needed. Pool recipe: 00_STRUCTURE-POOL/build-pool_Ni-Au.sh
+
+system: Ni-Au
+elements: [Ni, Au]          # type 1 = Ni, type 2 = Au -- fixed globally; x = x_Au
+masses: [58.6934, 196.96657]
+
+a_fcc: {Ni: 3.52, Au: 4.078}
+
+data_tree: /Users/e.bitzek/Desktop/SIMULATIONS/CONVEX-HULL-0K-Ni-Au
+pool_dir: 00_STRUCTURE-POOL
+
+potentials:
+  ACE-NiAu:
+    thread_dir: 01_HULL-ACE-NiAu
+    file: /cmmc/ptmp/biterik/POTENTIALS/ace_NiAu.yaml
+    sha256: c31c4d29b57f158c9bc851c6aa850ff5c4e60e799f86f57f9e72daeec3722514   # == SIMULATIONS/POTENTIALS/ace_NiAu.yaml == ACE-DISLOCS-Ni-Cu/ace_NiAu.yaml
+    pair_style: pace
+    pair_coeff: "* * POTPATH Ni Au"
+    citation: "ace_NiAu.yaml (pacemaker 0.2.7+99, fitted 2023-04)"
+  EAM-FoilesBaskesDaw1986:
+    thread_dir: 02_HULL-EAM-FoilesBaskesDaw1986
+    file: /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Au/POTENTIALS-NIST/1986--Foiles-S-M-Baskes-M-I-Daw-M-S--Ag-Au-Cu-Ni-Pd-Pt/Ni_u3.eam
+    sha256: 601bcc70cbd5db43ca877567c79e4af618e588d38bb45b20c2f5e48e1852ca39   # Ni_u3.eam; Au_u3.eam 0dac5249...
+    pair_style: eam
+    # funcfl format: one file per element, one pair_coeff line per type; cross pair term = geometric mean (FBD 1986 alloy model)
+    pair_coeff: "1 1 POTPATH\npair_coeff 2 2 /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Au/POTENTIALS-NIST/1986--Foiles-S-M-Baskes-M-I-Daw-M-S--Ag-Au-Cu-Ni-Pd-Pt/Au_u3.eam"
+    citation: "S. M. Foiles, M. I. Baskes, M. S. Daw, Phys. Rev. B 33, 7983 (1986); NIST 1986--Foiles-S-M--Ag-Au-Cu-Ni-Pd-Pt--LAMMPS--ipr1"
+  EAM-AdamsFoilesWolfer1989:
+    thread_dir: 03_HULL-EAM-AdamsFoilesWolfer1989
+    file: /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Au/POTENTIALS-NIST/1989--Adams-J-B-Foiles-S-M-Wolfer-W-G--Ag-Au-Cu-Ni-Pd-Pt/niu6.txt
+    sha256: 94f377a3b07cded37d2c352860720f17e2878f2a8ec0114d1d4816add29c745e   # niu6.txt; auu6.txt 2e8180e3...
+    pair_style: eam
+    pair_coeff: "1 1 POTPATH\npair_coeff 2 2 /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Au/POTENTIALS-NIST/1989--Adams-J-B-Foiles-S-M-Wolfer-W-G--Ag-Au-Cu-Ni-Pd-Pt/auu6.txt"
+    citation: "J. B. Adams, S. M. Foiles, W. G. Wolfer, J. Mater. Res. 4, 102 (1989); NIST 1989--Adams-J-B--Ag-Au-Cu-Ni-Pd-Pt--LAMMPS--ipr1"
+  EAM-Zhou2004:
+    thread_dir: 04_HULL-EAM-Zhou2004
+    file: /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Au/POTENTIALS-NIST/2004--Zhou-X-W-Johnson-R-A-Wadley-H-N-G--Cu-Ag-Au-Ni-Pd-Pt-Al-Pb-Fe-Mo-Ta-W-Mg-Co-Ti-Zr/CuAgAuNiPdPtAlPbFeMoTaWMgCoTiZr_Zhou04.eam.alloy
+    sha256: cf667915dcf1327d3be5379e59005c82e2ee22c6379de2d105e2c88467217a1c
+    pair_style: eam/alloy
+    pair_coeff: "* * POTPATH Ni Au"           # 16-element file; mapping by element name
+    citation: "X. W. Zhou, R. A. Johnson, H. N. G. Wadley, Phys. Rev. B 69, 144113 (2004); NIST 2004--Zhou-X-W--Cu-Ag-Au-Ni-Pd-Pt-Al-Pb-Fe-Mo-Ta-W-Mg-Co-Ti-Zr--LAMMPS--ipr1 (2018 precision-fixed file)"
+  EAMX-DawChandross2023:
+    thread_dir: 05_HULL-EAMX-DawChandross2023
+    file: /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Au/POTENTIALS-NIST/2023--Daw-M-S-Chandross-M--Cu-Ag-Au-Ni-Pd-Pt/CuAgAuNiPdPt_EAMX.eamalloy
+    sha256: 3504aaf4ae329f21bbdce09faea3cdafebcd33eb8927b5b668819a89046b5c27
+    pair_style: eam/alloy
+    pair_coeff: "* * POTPATH Ni Au"
+    citation: "M. S. Daw, M. Chandross, Acta Mater. 248, 118771 and 118772 (2023) (EAM-X, metals and alloys); NIST 2023--Daw-M-S--Cu-Ag-Au-Ni-Pd-Pt--LAMMPS--ipr1"
+
+lmp_binary: lmp
+lmp_version: "22 Jul 2025 - Update 3 (cmmg module lammps/250722)"
+lmp_launch: "srun"
+
+sqs:
+  parent: fcc
+  compositions: [0.25, 0.50, 0.75]   # x_Au
+  natoms: 108
+  cutoffs: [8.0, 5.0]
+  n_steps: 50000
+
+defects:
+  host_lattice: fcc
+  supercell: [4, 4, 4]
+  spotcheck_supercell: [6, 6, 6]
+  cases: [vac_Ni, vac_Au, sub_AuinNi, sub_NiinAu]
+
+epitaxy:
+  model: fcc001-cube-on-cube
+
+materials_project:
+  chemsys: Au-Ni

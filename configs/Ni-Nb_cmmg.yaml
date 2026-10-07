@@ -1,0 +1,81 @@
+# configs/Ni-Nb_cmmg.yaml
+# hull0k system config for Ni-Nb, CLUSTER-FACING (cmmg module lammps/250722, launched with srun), same pattern as
+# configs/Ni-Cu_cmmg-NIST.yaml: `prepare` bakes lmp command + potential paths into every job.json; data_tree stays the
+# Mac path (prepare / harvest / hull / report run on the Mac side, only run_one.py runs on cmmg).
+# Author: Erik Bitzek (created with LLM-LAMMPS)  Date: 2026-10-07
+#
+# NEW KEY reference_lattice (hull0k change of 2026-10-07): Nb is bcc, so formation and defect energies are referenced
+# to bcc Nb (and fcc Ni). Without the key hull0k uses fcc for both elements, as before (Ni-Cu unchanged).
+# Pool recipe (two SQS parents, two defect hosts): 00_STRUCTURE-POOL/build-pool_Ni-Nb.sh
+
+system: Ni-Nb
+elements: [Ni, Nb]          # type 1 = Ni, type 2 = Nb -- fixed globally; x = x_Nb
+masses: [58.6934, 92.90637]
+reference_lattice: {Ni: fcc, Nb: bcc}
+
+# initial guesses (A) for structure building only; Nb: fcc-equivalent of bcc a = 3.30 A (same atomic volume)
+a_fcc: {Ni: 3.52, Nb: 4.158}
+
+data_tree: /Users/e.bitzek/Desktop/SIMULATIONS/CONVEX-HULL-0K-Ni-Nb
+pool_dir: 00_STRUCTURE-POOL
+
+potentials:
+  ACE-NiNb:
+    thread_dir: 01_HULL-ACE-NiNb
+    file: /cmmc/ptmp/biterik/POTENTIALS/ace_NiNb.yaml
+    sha256: 1ed4068af12fd972e6deb50e9b59efcbfbbb3ee7b760a91ba52b849d8ddb678d   # == SIMULATIONS/POTENTIALS/ace_NiNb.yaml
+    pair_style: pace
+    pair_coeff: "* * POTPATH Ni Nb"
+    citation: "ace_NiNb.yaml (pacemaker 0.2.7+102.g681a4bb, fitted 2023-10, author petroan6)"
+  EAMFS-Zhang2016:
+    thread_dir: 02_HULL-EAMFS-Zhang2016
+    file: /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Nb/POTENTIALS-NIST/2016--Zhang-Y-Ashcraft-R-Mendelev-M-I-et-al--Ni-Nb/Ni-Nb_1.eam.fs
+    sha256: fe4ccb43a7fb06c74d21a8296f27ae86ac0e83df92d244487c9d3f3eda0a61a8
+    pair_style: eam/fs
+    pair_coeff: "* * POTPATH Ni Nb"           # file header element order "Ni Nb"
+    citation: "Y. Zhang, R. Ashcraft, M. I. Mendelev, C. Z. Wang, K. F. Kelton, J. Chem. Phys. 145, 204505 (2016); NIST 2016--Zhang-Y--Ni-Nb--LAMMPS--ipr1"
+  EAMFS-Mendelev2022:
+    thread_dir: 03_HULL-EAMFS-Mendelev2022
+    file: /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Nb/POTENTIALS-NIST/2022--Mendelev-M-I--Ni-Nb/v1_18_NiNb_B2.eam.fs
+    sha256: 7cced95ef6c5ade30bd964d6069958617925bd29e6101b9642aa140f6eb43cc8
+    pair_style: eam/fs
+    pair_coeff: "* * POTPATH Ni Nb"
+    citation: "M. I. Mendelev (2022), unpublished (improved Zhang 2016 with crystal formation energies); NIST 2022--Mendelev-M-I--Ni-Nb--LAMMPS--ipr1"
+  EAMFS-Borovikov2024:
+    thread_dir: 04_HULL-EAMFS-Borovikov2024
+    file: /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Nb/POTENTIALS-NIST/2024--Borovikov-V-V-Mendelev-M-I-Zarkevich-N-A-et-al--Ni-Al-Nb/Ni-Al-Nb.eam.fs
+    sha256: 0a44541d84d113b3f35a3da9fb1e00cc61e7bb8fa21a8704fc8c564d8861a259
+    pair_style: eam/fs
+    pair_coeff: "* * POTPATH Ni Nb"           # ternary file "Ni Al Nb"; only the Ni-Nb part is used
+    citation: "V. V. Borovikov, M. I. Mendelev, N. A. Zarkevich, T. M. Smith, J. W. Lawson, Int. J. Plast. 178, 104004 (2024); NIST 2024--Borovikov-V-V--Ni-Al-Nb--LAMMPS--ipr1"
+  MEAM-LeeKoGrabowski2022:
+    thread_dir: 05_HULL-MEAM-LeeKoGrabowski2022
+    file: /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Nb/POTENTIALS-NIST/2022--Lee-J-S-Ko-W-S-Grabowski-B--Nb-Ni-Ti/library.meam
+    sha256: f03eaf6b63bdf36b7266b79bbdb508194be07c9650df785256f2184667349fbc   # library.meam; NbNiTi.meam 19f2c01f...
+    pair_style: meam
+    # README (NIST): parameter-file indices are FIXED 1 = Nb, 2 = Ni, 3 = Ti -> library list must be "Nb Ni Ti"
+    pair_coeff: "* * POTPATH Nb Ni Ti /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Nb/POTENTIALS-NIST/2022--Lee-J-S-Ko-W-S-Grabowski-B--Nb-Ni-Ti/NbNiTi.meam Ni Nb"
+    citation: "J. S. Lee, W.-S. Ko, B. Grabowski, Acta Mater. 228, 117764 (2022); NIST 2022--Lee-J-S--Nb-Ni-Ti--LAMMPS--ipr1"
+
+lmp_binary: lmp                    # cmmg module lammps/250722 (MPI-only build), on PATH inside the job
+lmp_version: "22 Jul 2025 - Update 3 (cmmg module lammps/250722)"
+lmp_launch: "srun"
+
+sqs:                                 # fcc set; the bcc set is built by build-pool_Ni-Nb.sh with parent: bcc
+  parent: fcc
+  compositions: [0.25, 0.50, 0.75]   # x_Nb
+  natoms: 108
+  cutoffs: [8.0, 5.0]
+  n_steps: 50000
+
+defects:                             # Ni host (fcc 4x4x4); the Nb host (bcc 5x5x5) is built by build-pool_Ni-Nb.sh
+  host_lattice: fcc
+  supercell: [4, 4, 4]
+  spotcheck_supercell: [6, 6, 6]
+  cases: [vac_Ni, vac_Nb, sub_NbinNi, sub_NiinNb]
+
+epitaxy:
+  model: fcc001-cube-on-cube
+
+materials_project:
+  chemsys: Nb-Ni

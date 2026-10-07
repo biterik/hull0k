@@ -33,6 +33,13 @@ def load_config(path):
         return yaml.safe_load(f)
 
 
+def ref_lattice(cfg, el):
+    """Reference (ground-state) lattice of element `el` for formation and defect
+    energies: config `reference_lattice: {Nb: bcc}`; default fcc (the Ni-Cu
+    behaviour, unchanged). Added 2026-10-07 for Ni-Nb (bcc Nb)."""
+    return (cfg.get("reference_lattice") or {}).get(el, "fcc")
+
+
 def vegard_a(cfg, x_B):
     A, B = cfg["elements"]
     return (1 - x_B) * cfg["a_fcc"][A] + x_B * cfg["a_fcc"][B]
@@ -177,15 +184,14 @@ def build_sqs(cfg):
             n_steps=scfg["n_steps"],
         )
         cv = np.array(cs.get_cluster_vector(sqs))
-        orders = [orb["order"] for orb in cs.as_list]
-        # icet binary point function: +1/-1 site occupation; ideal random
-        # cluster vector element for an order-k orbit is <s>^k with
-        # <s> = (1-x)*(+1) + x*(-1) evaluated from the actual concentration
+        # ideal random cluster vector from icet itself at the ACHIEVED
+        # concentration. (Until 2026-10-07 this was <s>^k with a hard-coded
+        # sign convention, which icet 4.x flipped: off-stoichiometric SQS
+        # then showed a spurious mismatch of 1.0 from the odd-order terms.)
+        from icet.tools.structure_generation import _get_sqs_cluster_vector
         n_B = sum(1 for s in sqs.get_chemical_symbols() if s == B)
-        s_mean = 1.0 - 2.0 * n_B / len(sqs)
-        cv_rand = np.array([s_mean ** k for k in orders])
-        if len(cv_rand) != len(cv):  # as_list may or may not carry the zerolet
-            cv_rand = np.concatenate([[1.0], cv_rand])[: len(cv)]
+        cv_rand = np.array(_get_sqs_cluster_vector(
+            cs, {A: 1 - n_B / len(sqs), B: n_B / len(sqs)}))
         mismatch = float(np.max(np.abs(np.array(cv) - cv_rand)))
         sqs.info.update(prototype=f"SQS_{parent}", box_coupling="aniso")
         name = f"sqs_{parent}_x{x_B:.2f}_{len(sqs)}at"

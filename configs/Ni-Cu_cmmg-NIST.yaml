@@ -1,0 +1,117 @@
+# configs/Ni-Cu_cmmg-NIST.yaml
+# Everything Ni-Cu-specific for the hull0k workflow lives HERE.
+# A future Ni-Nb config must require no code changes (brief section 0).
+# Author: Erik Bitzek (created with LLM-LMPS)  Date: 2026-08-26
+# CLUSTER-FACING variant (2026-10-05): same system and pool as configs/Ni-Cu.yaml, but the lmp command and the
+# potential paths are the cmmg ones, because `prepare` bakes them into every job.json (README section 7.3).
+# data_tree stays the LOCAL Mac path: prepare/harvest/hull run on the Mac, only run_one.py runs on cmmg.
+
+system: Ni-Cu
+elements: [Ni, Cu]          # type 1 = Ni, type 2 = Cu -- fixed globally
+masses: [58.6934, 63.546]
+
+# initial lattice-parameter guesses (A) for structure building only;
+# phase 2 relaxes everything with each potential
+a_fcc: {Ni: 3.52, Cu: 3.615}
+
+data_tree: /Users/e.bitzek/Desktop/SIMULATIONS/CONVEX-HULL-0K-Ni-Cu
+pool_dir: 00_STRUCTURE-POOL
+
+potentials:
+  # Four further Ni-Cu potentials of the NIST Interatomic Potentials Repository
+  # (https://www.ctcms.nist.gov/potentials/system/Cu-Ni/), downloaded 2026-10-05. Mac copies (provenance, sha256):
+  # /Users/e.bitzek/Desktop/SIMULATIONS/CONVEX-HULL-0K-Ni-Cu/POTENTIALS-NIST/<id>/; cluster copies = `file` below.
+  # Same structure pool as EAM-Fischer2018 / ACE-CuNi (00_STRUCTURE-POOL), so the comparison is exact.
+  EAM-Onat2013:
+    thread_dir: 04_HULL-EAM-Onat2013
+    file: /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Cu/POTENTIALS-NIST/2013--Onat-B-Durukanoglu-S--Cu-Ni/CuNi_v2.eam.alloy
+    sha256: a2ef04844c5a222a3f3487f05db9790bb8d67e225664d4d35d98c8bff1c59da7
+    pair_style: eam/alloy
+    pair_coeff: "* * POTPATH Ni Cu"          # file header order is "Ni Cu"; pair_coeff list sets type 1 = Ni
+    citation: "B. Onat, S. Durukanoglu, J. Phys.: Condens. Matter 26, 035404 (2014); NIST 2013--Onat-B--Cu-Ni--LAMMPS--ipr2"
+  MEAM-LeeShim2004:
+    thread_dir: 05_HULL-MEAM-LeeShim2004
+    file: /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Cu/POTENTIALS-NIST/2004--Lee-B-J-Shim-J-H--Cu-Ni/library.meam
+    sha256: b10420bbf67c77c3bfcc57ab9eafc80de9e58dad59f60fce8cd024e61b5b8d47   # library.meam; NiCu.meam cb4eb9f5...
+    pair_style: meam
+    # parameter file indices: 1 = Ni (Ec(1,1) = 4.45), 2 = Cu (Ec(2,2) = 3.54) -> library element list "Ni Cu"
+    pair_coeff: "* * POTPATH Ni Cu /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Cu/POTENTIALS-NIST/2004--Lee-B-J-Shim-J-H--Cu-Ni/NiCu.meam Ni Cu"
+    citation: "B.-J. Lee, J.-H. Shim, Calphad 28, 125 (2004); NIST 2004--Lee-B-J--Cu-Ni--LAMMPS--ipr1"
+  MEAM-Sharifi2025:
+    thread_dir: 06_HULL-MEAM-Sharifi2025
+    file: /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Cu/POTENTIALS-NIST/2025--Sharifi-H-Wick-C-D--Cu-Ni/library.meam
+    sha256: 2aaac220049577b343feabb50a73a3c17b31abe893443b5467c39e69caaf586e   # library.meam; CuNi.meam a6d8d5bf...
+    pair_style: meam
+    # ASSUMPTION (not stated by NIST): parameter-file indices 1 = Cu, 2 = Ni (file name CuNi.meam, library order Cu before Ni)
+    pair_coeff: "* * POTPATH Cu Ni /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Cu/POTENTIALS-NIST/2025--Sharifi-H-Wick-C-D--Cu-Ni/CuNi.meam Ni Cu"
+    citation: "H. Sharifi, C. D. Wick, Comput. Mater. Sci. 248, 113595 (2025); NIST 2025--Sharifi-H--Cu-Ni--LAMMPS--ipr1"
+  EAM-Foiles1985:
+    thread_dir: 07_HULL-EAM-Foiles1985
+    file: /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Cu/POTENTIALS-NIST/1985--Foiles-S-M--Ni-Cu/Ni_smf7.eam
+    sha256: e83a717bacb776995959406353d3ef24d13768b2b9f0f012518c96db940b9d95   # Ni_smf7.eam; Cu_smf7.eam b1ccf777...
+    pair_style: eam
+    # funcfl format: one file per element, one pair_coeff line per type (the second line rides in the same string)
+    pair_coeff: "1 1 POTPATH\npair_coeff 2 2 /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Cu/POTENTIALS-NIST/1985--Foiles-S-M--Ni-Cu/Cu_smf7.eam"
+    citation: "S. M. Foiles, Phys. Rev. B 32, 7685 (1985); NIST 1985--Foiles-S-M--Ni-Cu--LAMMPS--ipr1"
+
+  # --- added 2026-10-05 evening: the two original potentials on cmmg (for the 52 AFLOW structures) ---------------
+  # Same keys and thread_dirs as configs/Ni-Cu.yaml, so the new structures land in the same relax-summary files.
+  EAM-Fischer2018:
+    thread_dir: 01_HULL-EAM-Fischer2018
+    file: /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Cu/POTENTIALS-NIST/2019--Fischer-F-Schmitz-G-Eich-S-M--Cu-Ni/Cu_Ni_Fischer_2018.eam.alloy
+    sha256: ee585bf9884a4ac2548abb395e81a12a941505983aaa058ef546929df74cf240   # identical to the Mac file used on 08-26
+    pair_style: eam/alloy
+    pair_coeff: "* * POTPATH Ni Cu"
+    citation: "F. Fischer, G. Schmitz, S. M. Eich, Acta Mater. 176, 220 (2019)"
+  ACE-CuNi:
+    thread_dir: 02_HULL-ACE-CuNi
+    file: /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Cu/POTENTIALS-PROJECT/ACE_CuNi.yaml
+    sha256: f1f4af89c006f200d92d01f95ab55b4dfbfd6181ab215184c8f57d49edbddf12
+    pair_style: pace
+    pair_coeff: "* * POTPATH Ni Cu"
+    citation: "ACE_CuNi.yaml (project-local ACE parameterization, ACE-DISLOCS-Ni-Cu)"
+  # --- element-order check for Sharifi 2025 (2026-10-05): the OTHER parameter-file order, 1 = Ni, 2 = Cu -------------
+  # Criterion: the correct order reproduces the library cohesive energies of fcc Ni (4.45) AND fcc Cu (3.54) exactly;
+  # the "Cu Ni" run (thread 06) gives fcc Cu -3.5362 eV/atom.
+  MEAM-Sharifi2025-orderNiCu:
+    thread_dir: 06b_HULL-MEAM-Sharifi2025-orderNiCu
+    file: /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Cu/POTENTIALS-NIST/2025--Sharifi-H-Wick-C-D--Cu-Ni/library.meam
+    sha256: 2aaac220049577b343feabb50a73a3c17b31abe893443b5467c39e69caaf586e
+    pair_style: meam
+    pair_coeff: "* * POTPATH Ni Cu /cmmc/ptmp/biterik/CONVEX-HULL-0K-Ni-Cu/POTENTIALS-NIST/2025--Sharifi-H-Wick-C-D--Cu-Ni/CuNi.meam Ni Cu"
+    citation: "H. Sharifi, C. D. Wick, Comput. Mater. Sci. 248, 113595 (2025) - element-order check"
+
+lmp_binary: lmp                    # cmmg module lammps/250722 (MPI-only build), on PATH inside the job
+lmp_version: "22 Jul 2025 (cmmg module lammps/250722)"
+# optional launcher prefix for the lmp call, e.g. "srun" on a cluster;
+# empty/absent = run the binary directly (Mac)
+lmp_launch: "srun"                 # MPI-linked binary: srun even for one task
+
+sqs:
+  parent: fcc                        # parent lattice: fcc | bcc | hcp
+  compositions: [0.25, 0.50, 0.75]   # x_Cu
+  natoms: 108                        # 3x3x3 conventional cells
+  cutoffs: [8.0, 5.0]                # pair, triplet cluster-space cutoffs (A)
+  n_steps: 50000
+
+defects:
+  host_lattice: fcc                  # host lattice: fcc | bcc | hcp
+  supercell: [4, 4, 4]               # conventional cells -> 256 sites
+  spotcheck_supercell: [6, 6, 6]     # 864 sites, one case (Cu subst in Ni)
+  cases: [vac_Ni, vac_Cu, sub_CuinNi, sub_NiinCu]
+
+epitaxy:
+  model: fcc001-cube-on-cube         # see hull0k/epitaxy.py for the registry
+
+materials_project:
+  chemsys: Cu-Ni
+
+# validation references (phase 3 gates), copied from configs/Ni-Cu.yaml
+references:
+  ACE-CuNi:
+    a0_Ni: 3.52196786648779
+    Ecoh_Ni: -4.81899412302984
+    a0_Cu: 3.63528714209867
+    Ecoh_Cu: -3.66209118843839
+    Evac_Ni: 1.5060
+    Esub_CuinNi: 0.2339
