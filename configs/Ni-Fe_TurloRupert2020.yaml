@@ -1,0 +1,70 @@
+# configs/Ni-Fe_TurloRupert2020.yaml -- hull0k system config for Ni-Fe, project CONVEX-HULL-0K-Ni-Fe-Ni-Al
+# (potential dependence of Turlo & Rupert, Acta Mater. 185, 129 (2020)). AS RUN 2026-10-12 in the session workspace
+# with a serial LAMMPS (conda-forge lammps 2025.07.22 nompi, "22 Jul 2025 - Update 6", MANYBODY + MEAM); the Mac paths
+# below resolved there through a symlink, so every path is the M5 path. For a cmmg re-run: point the potential files
+# at the cluster copy, set lmp_binary: lmp, lmp_launch: "srun" (see the project HOWTO).
+# Author: Erik Bitzek (created with LLM-LAMMPS)  Date: 2026-10-12
+
+system: Ni-Fe
+elements: [Ni, Fe]          # type 1 = Ni, type 2 = Fe -- x = x_Fe
+masses: [58.6934, 55.845]
+reference_lattice: {Ni: fcc, Fe: bcc}
+
+a_fcc: {Ni: 3.52, Fe: 3.611}   # Fe: fcc-equivalent of bcc a = 2.866 A (same atomic volume); structure building only
+
+data_tree: /Users/e.bitzek/Desktop/SIMULATIONS/CONVEX-HULL-0K-Ni-Fe-Ni-Al/Ni-Fe
+pool_dir: 00_STRUCTURE-POOL
+
+potentials:
+  EAM-Bonny2009-TurloRupert:
+    thread_dir: 01_HULL-EAM-Bonny2009-TurloRupert
+    file: /Users/e.bitzek/Desktop/SIMULATIONS/CONVEX-HULL-0K-Ni-Fe-Ni-Al/POTENTIALS-NIST/2009--Bonny-G-Pasianot-R-C-Malerba-L--Fe-Ni/Fe-Ni.eam.alloy
+    sha256: 6170422480edd9337507654a85350f63114eb19b4fa3dc33580b50f38f72c827
+    pair_style: eam/alloy
+    pair_coeff: "* * POTPATH Ni Fe"
+    citation: "G. Bonny, R. C. Pasianot, L. Malerba, Modelling Simul. Mater. Sci. Eng. 17, 025010 (2009); NIST 2009--Bonny-G--Fe-Ni--LAMMPS--ipr1. THE potential used by Turlo & Rupert 2020 (their ref. [36])"
+  EAM-Bonny2011:
+    thread_dir: 02_HULL-EAM-Bonny2011
+    file: /Users/e.bitzek/Desktop/SIMULATIONS/CONVEX-HULL-0K-Ni-Fe-Ni-Al/POTENTIALS-NIST/2011--Bonny-G-Terentyev-D-Pasianot-R-C-et-al--Fe-Ni-Cr/FeNiCr.eam.alloy
+    sha256: a13ad54835aa07871831d04dbe17b01167c21f15f8b8863f40a76baa3da0dc40
+    pair_style: eam/alloy
+    pair_coeff: "* * POTPATH Ni Fe"           # ternary Fe Ni Cr file; only the Fe-Ni part is used
+    citation: "G. Bonny, D. Terentyev, R. C. Pasianot, S. Poncé, A. Bakaev, Modelling Simul. Mater. Sci. Eng. 19, 085008 (2011); NIST 2011--Bonny-G--Fe-Ni-Cr--LAMMPS--ipr2"
+  EAM-Zhou2018:
+    thread_dir: 03_HULL-EAM-ZhouFosterSills2018
+    file: /Users/e.bitzek/Desktop/SIMULATIONS/CONVEX-HULL-0K-Ni-Fe-Ni-Al/POTENTIALS-NIST/2018--Zhou-X-W-Foster-M-E-Sills-R-B--Fe-Ni-Cr/FeNiCr.t
+    sha256: 947d116a64367d7218363dc5ada102252760bd031dfe09201bd59ea0152c40bb
+    pair_style: eam/alloy
+    pair_coeff: "* * POTPATH Ni Fe"           # Fe Ni Cr H file; only the Fe-Ni part is used
+    citation: "X. W. Zhou, M. E. Foster, R. B. Sills, J. Comput. Chem. 39, 2420 (2018); NIST 2018--Zhou-X-W--Fe-Ni-Cr--LAMMPS--ipr1"
+  MEAM-WuLeeSu2017:
+    thread_dir: 04_HULL-MEAM-WuLeeSu2017
+    file: /Users/e.bitzek/Desktop/SIMULATIONS/CONVEX-HULL-0K-Ni-Fe-Ni-Al/POTENTIALS-NIST/2017--Wu-C-Lee-B-J-Su-X--Ni-Fe/library.meam
+    sha256: 0ceb62896ade135c9eeac3e9ba8000977ee9ca0361905c782463ed55daca002c   # library.meam; NiFe.meam 0d9b939a...
+    pair_style: meam
+    # NiFe.meam indexes 1 = Ni, 2 = Fe (Ec(1,1) = 4.45 = Ni) -> library list "Ni Fe"; verified: fcc Ni -4.4500, bcc Fe -4.2900 eV
+    pair_coeff: "* * POTPATH Ni Fe /Users/e.bitzek/Desktop/SIMULATIONS/CONVEX-HULL-0K-Ni-Fe-Ni-Al/POTENTIALS-NIST/2017--Wu-C-Lee-B-J-Su-X--Ni-Fe/NiFe.meam Ni Fe"
+    citation: "C. Wu, B.-J. Lee, X. Su, Calphad 57, 98 (2017); NIST 2017--Wu-C--Ni-Fe--LAMMPS--ipr1"
+
+lmp_binary: /home/claude/lmpenv/bin/lmp
+lmp_version: "22 Jul 2025 - Update 6 (conda-forge lammps 2025.07.22 nompi, serial, session workspace)"
+lmp_launch: ""
+
+sqs:                                 # fcc set; the bcc set is built by build-pool_Ni-Fe.py with parent: bcc
+  parent: fcc
+  compositions: [0.25, 0.50, 0.75]   # x_Fe
+  natoms: 108
+  cutoffs: [8.0, 5.0]
+  n_steps: 50000
+
+defects:                             # Ni host fcc 4x4x4; the Fe host (bcc 5x5x5) is built by build-pool_Ni-Fe.py
+  host_lattice: fcc
+  supercell: [4, 4, 4]
+  spotcheck_supercell: [6, 6, 6]
+  cases: [vac_Ni, vac_Fe, sub_FeinNi, sub_NiinFe]
+
+epitaxy:
+  model: fcc001-cube-on-cube
+
+materials_project:
+  chemsys: Fe-Ni
